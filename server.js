@@ -1,3 +1,4 @@
+const { response } = require('express');
 const express = require('express');
 const mongoose = require('mongoose');
 
@@ -75,17 +76,22 @@ app.put('/api/users/:id', ({ params, body }, res) => {
 });
 
 //delete user
-app.delete('/api/users/:id', (req , res) => {
-    db.User.findByIdAndUpdate({_id: req.params.id}, { $set: { thoughts: [] } }, { new: true })
-        .then( () =>
-    db.User.findOneAndDelete({ _id: req.params.id }))
+app.delete('/api/users/:id', (req, res) => {
+    //({_id: req.params.id}, { $set: { thoughts: [] } }, { new: true })
+
+    db.User.findOneAndDelete({ _id: req.params.id })
         .then(dbUser => {
-            if (!dbUser) {
-                res.json({ message: 'No user found with this id!' });
-                return;
-            }
-            res.json({message: 'User and associated thoughts deleted'});
-        })
+            db.Thought.deleteMany({ _id: { $in: dbUser.thoughts } })
+                .then(response => {
+                    if (!response) {
+                        res.json({ message: 'No user found with this id!' });
+                        return;
+                    }
+                    res.json({ message: 'User and associated thoughts deleted' });
+                }
+                )
+        }
+        )
         .catch(err => {
             res.json(err);
         });
